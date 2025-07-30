@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query"
-import { login } from "../../https/index"
 import { enqueueSnackbar } from "notistack";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
- 
+import { supabase } from "../../config/supabase";
+
 const Login = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -25,17 +25,42 @@ const Login = () => {
     }
 
     const loginMutation = useMutation({
-      mutationFn: (reqData) => login(reqData),
-      onSuccess: (res) => {
-          const { data } = res;
-          console.log(data);
-          const { _id, name, email, phone, role } = data.data;
-          dispatch(setUser({ _id, name, email, phone, role }));
+      mutationFn: async (reqData) => {
+        const { email, password } = reqData;
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+        return data;
+      },
+      onSuccess: async (data) => {
+        try {
+          // Get user profile from Supabase users table
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', formData.email)
+            .single();
+            
+          if (error) throw error;
+          
+          // Set user in Redux store
+          const { id, name, email, phone, role } = userData;
+          dispatch(setUser({ _id: id, name, email, phone, role }));
+          
+          enqueueSnackbar("Login successful!", { variant: "success" });
           navigate("/");
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          enqueueSnackbar("Login successful but error fetching user data", { variant: "warning" });
+          navigate("/");
+        }
       },
       onError: (error) => {
-        const { response } = error;
-        enqueueSnackbar(response.data.message, { variant: "error" });
+        console.error("Login error:", error);
+        enqueueSnackbar(error.message || "Login failed", { variant: "error" });
       }
     })
 

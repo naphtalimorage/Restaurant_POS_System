@@ -1,5 +1,5 @@
 const express = require("express");
-const connectDB = require("./config/database");
+const { connectSupabase } = require("./config/supabase");
 const config = require("./config/config");
 const globalErrorHandler = require("./middlewares/globalErrorHandler");
 const cookieParser = require("cookie-parser");
@@ -8,12 +8,14 @@ const app = express();
 
 
 const PORT = config.port;
-connectDB();
+connectSupabase();
 
 // Middlewares
 app.use(cors({
     credentials: true,
-    origin: ['http://localhost:5173']
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }))
 app.use(express.json()); // parse incoming request in json format
 app.use(cookieParser())

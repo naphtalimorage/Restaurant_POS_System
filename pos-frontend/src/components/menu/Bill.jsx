@@ -1,31 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getTotalPrice } from "../../redux/slices/cartSlice";
 import {
   addOrder,
-  createOrderRazorpay,
+  createOrderPaystack,
   updateTable,
-  verifyPaymentRazorpay,
 } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
 import { useMutation } from "@tanstack/react-query";
 import { removeAllItems } from "../../redux/slices/cartSlice";
 import { removeCustomer } from "../../redux/slices/customerSlice";
 import Invoice from "../invoice/Invoice";
-
-function loadScript(src) {
-  return new Promise((resolve) => {
-    const script = document.createElement("script");
-    script.src = src;
-    script.onload = () => {
-      resolve(true);
-    };
-    script.onerror = () => {
-      resolve(false);
-    };
-    document.body.appendChild(script);
-  });
-}
 
 const Bill = () => {
   const dispatch = useDispatch();
@@ -51,75 +36,53 @@ const Bill = () => {
     }
 
     if (paymentMethod === "Online") {
-      // load the script
       try {
-        const res = await loadScript(
-          "https://checkout.razorpay.com/v1/checkout.js"
-        );
+        // Create order with Paystack
+        const reqData = {
+          amount: totalPriceWithTax.toFixed(2),
+          // You can add customer information here if needed
+          email: "customer@example.com", // In a real app, you'd use the customer's email
+          metadata: {
+            custom_fields: [
+              {
+                display_name: "Customer Name",
+                variable_name: "customer_name",
+                value: customerData.customerName || "Guest"
+              }
+            ]
+          }
+        };
 
-        if (!res) {
-          enqueueSnackbar("Razorpay SDK failed to load. Are you online?", {
-            variant: "warning",
+        const { data } = await createOrderPaystack(reqData);
+
+        if (!data.success) {
+          enqueueSnackbar("Failed to initialize payment", {
+            variant: "error",
           });
           return;
         }
 
-        // create order
-
-        const reqData = {
-          amount: totalPriceWithTax.toFixed(2),
-        };
-
-        const { data } = await createOrderRazorpay(reqData);
-
-        const options = {
-          key: `${import.meta.env.VITE_RAZORPAY_KEY_ID}`,
-          amount: data.order.amount,
-          currency: data.order.currency,
-          name: "RESTRO",
-          description: "Secure Payment for Your Meal",
-          order_id: data.order.id,
-          handler: async function (response) {
-            const verification = await verifyPaymentRazorpay(response);
-            console.log(verification);
-            enqueueSnackbar(verification.data.message, { variant: "success" });
-
-            // Place the order
-            const orderData = {
-              customerDetails: {
-                name: customerData.customerName,
-                phone: customerData.customerPhone,
-                guests: customerData.guests,
-              },
-              orderStatus: "In Progress",
-              bills: {
-                total: total,
-                tax: tax,
-                totalWithTax: totalPriceWithTax,
-              },
-              items: cartData,
-              table: customerData.table.tableId,
-              paymentMethod: paymentMethod,
-              paymentData: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-              },
-            };
-
-            setTimeout(() => {
-              orderMutation.mutate(orderData);
-            }, 1500);
-          },
-          prefill: {
-            name: customerData.name,
-            email: "",
-            contact: customerData.phone,
-          },
-          theme: { color: "#025cca" },
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
+        // Paystack provides a direct URL to their payment page
+        // We'll redirect the user to this URL
+        const order = data.order;
+        
+        // Log the public key for debugging
+        console.log("Using Paystack public key:", import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
+        
+        // Store order information for verification after payment
+        sessionStorage.setItem('paystack_reference', order.reference);
+        
+        // Open Paystack payment page in a new window or redirect
+        window.location.href = order.authorization_url;
+        
+        // The verification will happen when the user is redirected back
+        // We'll handle this in the PaymentConfirmation component
+        
+        // The flow is:
+        // 1. Redirecting to Paystack payment page
+        // 2. Paystack redirects back to our callback URL (/payment/confirmation)
+        // 3. PaymentConfirmation component verifies the payment using the reference
+        // 4. Then creates the order
       } catch (error) {
         console.log(error);
         enqueueSnackbar("Payment Failed!", {

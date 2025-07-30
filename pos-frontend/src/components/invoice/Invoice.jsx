@@ -1,12 +1,38 @@
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa6";
+import PropTypes from 'prop-types';
 
 const Invoice = ({ orderInfo, setShowInvoice }) => {
   const invoiceRef = useRef(null);
+  
+  // Check if orderInfo is provided
+  if (!orderInfo) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="bg-white p-4 rounded-lg shadow-lg">
+          <p className="text-red-500">Error: Order information is missing</p>
+          <button
+            onClick={() => setShowInvoice(false)}
+            className="text-red-500 hover:underline text-xs px-4 py-2 rounded-lg mt-4"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handlePrint = () => {
+    if (!invoiceRef.current) return;
+    
     const printContent = invoiceRef.current.innerHTML;
     const WinPrint = window.open("", "", "width=900,height=650");
+    
+    if (!WinPrint) {
+      alert("Please allow pop-ups to print the receipt");
+      return;
+    }
 
     WinPrint.document.write(`
             <html>
@@ -65,74 +91,98 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           <div className="mt-4 border-t pt-4 text-sm text-gray-700">
             <p>
               <strong>Order ID:</strong>{" "}
-              {Math.floor(new Date(orderInfo.orderDate).getTime())}
+              {orderInfo.orderDate ? Math.floor(new Date(orderInfo.orderDate).getTime()) : "N/A"}
             </p>
-            <p>
-              <strong>Name:</strong> {orderInfo.customerDetails.name}
-            </p>
-            <p>
-              <strong>Phone:</strong> {orderInfo.customerDetails.phone}
-            </p>
-            <p>
-              <strong>Guests:</strong> {orderInfo.customerDetails.guests}
-            </p>
+            {orderInfo.customerDetails ? (
+              <>
+                <p>
+                  <strong>Name:</strong> {orderInfo.customerDetails.name || "N/A"}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {orderInfo.customerDetails.phone || "N/A"}
+                </p>
+                <p>
+                  <strong>Guests:</strong> {orderInfo.customerDetails.guests || "N/A"}
+                </p>
+              </>
+            ) : (
+              <p><strong>Customer Details:</strong> Not available</p>
+            )}
           </div>
 
           {/* Items Summary */}
 
           <div className="mt-4 border-t pt-4">
             <h3 className="text-sm font-semibold">Items Ordered</h3>
-            <ul className="text-sm text-gray-700">
-              {orderInfo.items.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex justify-between items-center text-xs"
-                >
-                  <span>
-                    {item.name} x{item.quantity}
-                  </span>
-                  <span>₹{item.price.toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
+            {orderInfo.items && orderInfo.items.length > 0 ? (
+              <ul className="text-sm text-gray-700">
+                {orderInfo.items.map((item, index) => (
+                  <li
+                    key={index}
+                    className="flex justify-between items-center text-xs"
+                  >
+                    <span>
+                      {item.name || "Unknown Item"} x{item.quantity || 1}
+                    </span>
+                    <span>₹{(item.price && typeof item.price === 'number') ? item.price.toFixed(2) : "0.00"}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">No items in this order</p>
+            )}
           </div>
 
           {/* Bills Summary */}
 
           <div className="mt-4 border-t pt-4 text-sm">
-            <p>
-              <strong>Subtotal:</strong> ₹{orderInfo.bills.total.toFixed(2)}
-            </p>
-            <p>
-              <strong>Tax:</strong> ₹{orderInfo.bills.tax.toFixed(2)}
-            </p>
-            <p className="text-md font-semibold">
-              <strong>Grand Total:</strong> ₹
-              {orderInfo.bills.totalWithTax.toFixed(2)}
-            </p>
+            {orderInfo.bills ? (
+              <>
+                <p>
+                  <strong>Subtotal:</strong> ₹{(orderInfo.bills.total && typeof orderInfo.bills.total === 'number') ? orderInfo.bills.total.toFixed(2) : "0.00"}
+                </p>
+                <p>
+                  <strong>Tax:</strong> ₹{(orderInfo.bills.tax && typeof orderInfo.bills.tax === 'number') ? orderInfo.bills.tax.toFixed(2) : "0.00"}
+                </p>
+                <p className="text-md font-semibold">
+                  <strong>Grand Total:</strong> ₹
+                  {(orderInfo.bills.totalWithTax && typeof orderInfo.bills.totalWithTax === 'number') ? orderInfo.bills.totalWithTax.toFixed(2) : "0.00"}
+                </p>
+              </>
+            ) : (
+              <p><strong>Bill Details:</strong> Not available</p>
+            )}
           </div>
 
           {/* Payment Details */}
 
           <div className="mb-2 mt-2 text-xs">
-            {orderInfo.paymentMethod === "Cash" ? (
-              <p>
-                <strong>Payment Method:</strong> {orderInfo.paymentMethod}
-              </p>
-            ) : (
-              <>
+            {orderInfo.paymentMethod ? (
+              orderInfo.paymentMethod === "Cash" ? (
                 <p>
                   <strong>Payment Method:</strong> {orderInfo.paymentMethod}
                 </p>
-                <p>
-                  <strong>Razorpay Order ID:</strong>{" "}
-                  {orderInfo.paymentData?.razorpay_order_id}
-                </p>
-                <p>
-                  <strong>Razorpay Payment ID:</strong>{" "}
-                  {orderInfo.paymentData?.razorpay_payment_id}
-                </p>
-              </>
+              ) : (
+                <>
+                  <p>
+                    <strong>Payment Method:</strong> {orderInfo.paymentMethod}
+                  </p>
+                  {orderInfo.paymentData && (
+                    <>
+                      <p>
+                        <strong>Paystack Reference:</strong>{" "}
+                        {orderInfo.paymentData.paystack_reference || "N/A"}
+                      </p>
+                      <p>
+                        <strong>Paystack Transaction ID:</strong>{" "}
+                        {orderInfo.paymentData.paystack_transaction_id || "N/A"}
+                      </p>
+                    </>
+                  )}
+                </>
+              )
+            ) : (
+              <p><strong>Payment Method:</strong> Not specified</p>
             )}
           </div>
         </div>
@@ -155,6 +205,36 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
       </div>
     </div>
   );
+};
+
+// Define PropTypes for the component
+Invoice.propTypes = {
+  orderInfo: PropTypes.shape({
+    orderDate: PropTypes.string,
+    customerDetails: PropTypes.shape({
+      name: PropTypes.string,
+      phone: PropTypes.string,
+      guests: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+    }),
+    items: PropTypes.arrayOf(
+      PropTypes.shape({
+        name: PropTypes.string,
+        quantity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        price: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+      })
+    ),
+    bills: PropTypes.shape({
+      total: PropTypes.number,
+      tax: PropTypes.number,
+      totalWithTax: PropTypes.number
+    }),
+    paymentMethod: PropTypes.string,
+    paymentData: PropTypes.shape({
+      paystack_reference: PropTypes.string,
+      paystack_transaction_id: PropTypes.string
+    })
+  }),
+  setShowInvoice: PropTypes.func.isRequired
 };
 
 export default Invoice;

@@ -1,13 +1,11 @@
+// config/config.js
 require("dotenv").config();
 
-const config = Object.freeze({
+module.exports = {
     port: process.env.PORT || 3000,
-    databaseURI: process.env.MONGODB_URI || "mongodb://localhost:27017/pos-db",
-    nodeEnv : process.env.NODE_ENV || "development",
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
+    paystackWebhookSecret: process.env.PAYSTACK_WEBHOOK_SECRET,
     accessTokenSecret: process.env.JWT_SECRET,
-    razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-    razorpaySecretKey: process.env.RAZORPAY_KEY_SECRET,
-    razorpyWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET
-});
-
-module.exports = config;
+};

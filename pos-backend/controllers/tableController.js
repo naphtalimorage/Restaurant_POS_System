@@ -1,26 +1,33 @@
-const Table = require("../models/tableModel");
+const { createTable, getAllTables, updateTable: updateTableModel, findTableByNumber } = require("../models/tableModel");
 const createHttpError = require("http-errors");
-const mongoose = require("mongoose")
+const { validate: isUUID } = require('uuid');
 
 const addTable = async (req, res, next) => {
   try {
     const { tableNo, seats } = req.body;
+    
     if (!tableNo) {
       const error = createHttpError(400, "Please provide table No!");
       return next(error);
     }
-    const isTablePresent = await Table.findOne({ tableNo });
-
-    if (isTablePresent) {
-      const error = createHttpError(400, "Table already exist!");
-      return next(error);
+    
+    try {
+      // Create table using the model function
+      const newTable = await createTable({ tableNo, seats });
+      
+      res.status(201).json({ 
+        success: true, 
+        message: "Table added!", 
+        data: newTable 
+      });
+    } catch (error) {
+      // If table already exists or other error
+      if (error.message === 'Table already exists!') {
+        const httpError = createHttpError(400, "Table already exists!");
+        return next(httpError);
+      }
+      throw error;
     }
-
-    const newTable = new Table({ tableNo, seats });
-    await newTable.save();
-    res
-      .status(201)
-      .json({ success: true, message: "Table added!", data: newTable });
   } catch (error) {
     next(error);
   }
@@ -28,10 +35,9 @@ const addTable = async (req, res, next) => {
 
 const getTables = async (req, res, next) => {
   try {
-    const tables = await Table.find().populate({
-      path: "currentOrder",
-      select: "customerDetails"
-    });
+    // Get all tables using the model function
+    const tables = await getAllTables();
+    
     res.status(200).json({ success: true, data: tables });
   } catch (error) {
     next(error);
@@ -41,27 +47,31 @@ const getTables = async (req, res, next) => {
 const updateTable = async (req, res, next) => {
   try {
     const { status, orderId } = req.body;
-
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        const error = createHttpError(404, "Invalid id!");
-        return next(error);
+    // Validate UUID format
+    if (!isUUID(id)) {
+      const error = createHttpError(404, "Invalid id format!");
+      return next(error);
     }
 
-    const table = await Table.findByIdAndUpdate(
-        id,
-      { status, currentOrder: orderId },
-      { new: true }
-    );
-
-    if (!table) {
-      const error = createHttpError(404, "Table not found!");
-      return error;
+    try {
+      // Update table using the model function
+      const table = await updateTableModel(id, { 
+        status, 
+        currentOrder: orderId 
+      });
+      
+      res.status(200).json({
+        success: true, 
+        message: "Table updated!", 
+        data: table
+      });
+    } catch (error) {
+      // If table not found or other error
+      const httpError = createHttpError(404, "Table not found!");
+      return next(httpError);
     }
-
-    res.status(200).json({success: true, message: "Table updated!", data: table});
-
   } catch (error) {
     next(error);
   }

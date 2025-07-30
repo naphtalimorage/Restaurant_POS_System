@@ -1,83 +1,141 @@
-# 🍽️ **Restaurant POS System**  
+# Restaurant POS System
 
-A full-featured **Restaurant POS System** built using the **MERN Stack** to streamline restaurant operations, enhance customer experience, and manage orders, payments, and inventory with ease.
+A comprehensive Point of Sale (POS) system for restaurants, built with modern web technologies. This system helps restaurant staff manage orders, tables, payments, and user authentication efficiently.
 
-## ✨ **Features**
+## Features
 
-- 🍽️ **Order Management**  
-  Efficiently manage customer orders with real-time updates and status tracking.
+- **User Authentication**
+  - Secure login and registration using Supabase authentication
+  - Role-based access control (Admin, Cashier, Waiter)
 
-- 🪑 **Table Reservations**  
-  Simplify table bookings and manage reservations directly from the POS.
+- **Order Management**
+  - Create and manage orders
+  - Track order status
+  - Associate orders with tables
 
-- 🔐 **Authentication**  
-  Secure login and role-based access control for admins, staff, and users.
+- **Table Management**
+  - Add and manage restaurant tables
+  - View table status (occupied, available)
+  - Associate tables with orders
 
-- 💸 **Payment Integration**  
-  Integrated with **Razorpay** (or other gateways) for seamless online payments.
+- **Payment Processing**
+  - Process payments using Paystack
+  - Verify payment status
+  - Generate receipts
 
-- 🧾 **Billing & Invoicing**  
-  Automatically generate detailed bills and invoices for every order.
+## Tech Stack
 
+### Frontend
+- React.js with Vite
+- Redux Toolkit for state management
+- React Query for data fetching
+- Tailwind CSS for styling
+- React Router for navigation
+- Notistack for notifications
+- Supabase for authentication and data storage
 
-## 🏗️ **Tech Stack**
+### Backend
+- Node.js with Express
+- Supabase for database and authentication
+- JWT for token-based authentication
+- bcrypt for password hashing
 
-| **Category**             | **Technology**                |
-|--------------------------|-------------------------------|
-| 🖥️ **Frontend**          | React.js, Redux, Tailwind CSS  |
-| 🔙 **Backend**           | Node.js, Express.js           |
-| 🗄️ **Database**          | MongoDB                       |
-| 🔐 **Authentication**    | JWT, bcrypt                   |
-| 💳 **Payment Integration**| Razorpay    |
-| 📊 **State Management**   | Redux Toolkit                 |
-| ⚡ **Data Fetching & Caching** | React Query            |
-| 🔗 **APIs**              | RESTful APIs                   |
+## Project Structure
 
----
-<br>
+The project is divided into two main parts:
 
-## 📺 **YouTube Playlist**
+- **pos-frontend**: Contains the React frontend application
+- **pos-backend**: Contains the Node.js backend API
 
-🎬 Follow the complete tutorial series on building this Restaurant POS System on YouTube:  
-👉 [Watch the Playlist](https://www.youtube.com/playlist?list=PL9OdiypqS7Nk0DHnSNFIi8RgEFJCIWB6X)  
+## Setup Instructions
 
-## 📁 **Assets**
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+- Supabase account
 
-- 📦 **Project Assets:** [Google Drive](https://drive.google.com/drive/folders/193N-F1jpzyfPCRCLc9wCyaxjYu2K6PC_)
+### Backend Setup
 
----
+1. Navigate to the backend directory:
+   ```
+   cd pos-backend
+   ```
 
-## 📋 **Flow Chart for Project Structure**
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-- 🗺️ **Visualize the Project Structure:** [View Flow Chart](https://app.eraser.io/workspace/IcU1b6EHu9ZyS9JKi0aY?origin=share)
+3. Create a `.env` file based on `.env.example` and fill in your Supabase credentials:
+   ```
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   ACCESS_TOKEN_SECRET=your_jwt_secret
+   ```
 
----
+4. Run the database schema:
+   ```
+   npm run db:setup
+   ```
 
-## 🎨 **Design Inspiration**
+5. Start the backend server:
+   ```
+   npm run dev
+   ```
 
-- 💡 **UI/UX Design Reference:** [Behance Design](https://www.behance.net/gallery/210280099/Restaurant-POS-System-Point-of-Sale-UIUX-Design)
+### Frontend Setup
 
----
+1. Navigate to the frontend directory:
+   ```
+   cd pos-frontend
+   ```
 
-## 🖼️ **Project Screenshots**
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-<table>
-  <tr>
-    <td><img src="https://res.cloudinary.com/amritrajmaurya/image/upload/v1740502772/ibjxvy5o1ikbsdebrjky.png" alt="Screenshot 1" width="300"/></td>
-    <td><img src="https://res.cloudinary.com/amritrajmaurya/image/upload/v1740502773/ietao6dnw6yjsh4f71zn.png" alt="Screenshot 2" width="300"/></td>
-  </tr>
-  <tr>
-    <td><img src="https://res.cloudinary.com/amritrajmaurya/image/upload/v1740502772/vesokdfpa1jb7ytm9abi.png" alt="Screenshot 3" width="300"/></td>
-    <td><img src="https://res.cloudinary.com/amritrajmaurya/image/upload/v1740502772/setoqzhzbwbp9udpri1f.png" alt="Screenshot 4" width="300"/></td>
-  </tr>
-  <tr>
-    <td><img src="https://res.cloudinary.com/amritrajmaurya/image/upload/v1740502772/fc4tiwzdoisqwac1j01y.png" alt="Screenshot 5" width="300"/></td>
-  </tr>
-</table>
+3. Start the development server:
+   ```
+   npm run dev
+   ```
 
+4. Open your browser and navigate to `http://localhost:5173`
 
-✨ Feel free to explore, contribute, and enhance the project! 🚀
+## Usage
 
-💡 To contribute, please check out the **CONTRIBUTING.md** for guidelines.
+### Authentication
 
-⭐ If you find this project helpful, don't forget to **star** the repository! 🌟
+1. **Sign Up**: New users can register with their name, email, phone, password, and role.
+2. **Sign In**: Existing users can log in with their email and password.
+
+### Order Management
+
+1. **Create Order**: Select a table, add items, and create a new order.
+2. **View Orders**: See all orders and their status.
+3. **Update Order Status**: Change order status (e.g., pending, completed).
+
+### Table Management
+
+1. **Add Table**: Add a new table with a name and capacity.
+2. **View Tables**: See all tables and their status.
+3. **Update Table Status**: Change table status (e.g., available, occupied).
+
+### Payment Processing
+
+1. **Process Payment**: Select an order and process payment.
+2. **Verify Payment**: Verify payment status.
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Supabase](https://supabase.io/) for authentication and database services
+- [Paystack](https://paystack.com/) for payment processing
+- All contributors who have helped with the development of this project

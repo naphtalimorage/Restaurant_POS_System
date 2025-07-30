@@ -1,61 +1,106 @@
-const Razorpay = require("razorpay");
+const axios = require("axios");
 const config = require("../config/config");
-const crypto = require("crypto");
-const Payment = require("../models/paymentModel");
+const { createPayment } = require("../models/paymentModel");
+const createHttpError = require("http-errors");
 
 const createOrder = async (req, res, next) => {
-  const razorpay = new Razorpay({
-    key_id: config.razorpayKeyId,
-    key_secret: config.razorpaySecretKey,
-  });
-
   try {
-    const { amount } = req.body;
-    const options = {
-      amount: amount * 100, // Amount in paisa (1 INR = 100 paisa)
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
+    const { amount, email } = req.body;
+    const reference = `ref_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+
+    const payload = {
+      email,
+      amount: amount * 100, // Convert to kobo/cents
+      currency: "KES",
+      reference,
+      callback_url: "http://localhost:5173/payment/confirmation"
     };
 
-    const order = await razorpay.orders.create(options);
-    res.status(200).json({ success: true, order });
+    const response = await axios.post(
+        "https://api.paystack.co/transaction/initialize",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${config.paystackSecretKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+    );
+
+    const { data } = response.data;
+
+    res.status(200).json({
+      success: true,
+      order: {
+        id: data.reference,
+        amount: amount * 100,
+        currency: "KES",
+        authorization_url: data.authorization_url,
+        reference: data.reference
+      }
+    });
   } catch (error) {
-    console.log(error);
-    next(error);
+    console.error("Paystack Init Error:", error.response?.data || error.message);
+    return next(createHttpError(500, "Failed to initialize payment"));
   }
 };
+
 
 const verifyPayment = async (req, res, next) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
+    const reference = req.query.reference || req.body.reference;
 
-    const expectedSignature = crypto
-      .createHmac("sha256", config.razorpaySecretKey)
-      .update(razorpay_order_id + "|" + razorpay_payment_id)
-      .digest("hex");
+    if (!reference) {
+      return next(createHttpError(400, "No reference provided for verification"));
+    }
 
-    if (expectedSignature === razorpay_signature) {
-      res.json({ success: true, message: "Payment verified successfully!" });
+    const response = await axios.get(
+        `https://api.paystack.co/transaction/verify/${reference}`,
+        {
+          headers: {
+            Authorization: `Bearer ${config.paystackSecretKey}`
+          }
+        }
+    );
+
+    const { data } = response.data;
+
+    if (data.status === "success") {
+      res.json({
+        success: true,
+        message: "Payment verified successfully!",
+        data: {
+          reference: data.reference,
+          amount: data.amount / 100,
+          paystack_reference: data.reference,
+          transaction_id: data.id,
+          status: data.status
+        }
+      });
     } else {
-      const error = createHttpError(400, "Payment verification failed!");
-      return next(error);
+      return next(createHttpError(400, "Payment not successful"));
     }
   } catch (error) {
-    next(error);
+    console.error("Verification error:", error.response?.data || error.message);
+    return next(createHttpError(500, "Verification failed"));
   }
 };
 
+
 const webHookVerification = async (req, res, next) => {
   try {
-    const secret = config.razorpyWebhookSecret;
-    const signature = req.headers["x-razorpay-signature"];
+    const secret = config.paystackWebhookSecret;
+    const signature = req.headers["x-paystack-signature"];
+
+    if (!signature) {
+      return next(createHttpError(400, "❌ No Paystack signature found!"));
+    }
 
     const body = JSON.stringify(req.body);
 
     // 🛑 Verify the signature
     const expectedSignature = crypto
-      .createHmac("sha256", secret)
+      .createHmac("sha512", secret)
       .update(body)
       .digest("hex");
 
@@ -63,24 +108,24 @@ const webHookVerification = async (req, res, next) => {
       console.log("✅ Webhook verified:", req.body);
 
       // ✅ Process payment (e.g., update DB, send confirmation email)
-      if (req.body.event === "payment.captured") {
-        const payment = req.body.payload.payment.entity;
-        console.log(`💰 Payment Captured: ${payment.amount / 100} INR`);
+      if (req.body.event === "charge.success") {
+        const payment = req.body.data;
+        console.log(`💰 Payment Captured: ${payment.amount / 100} KES`);
 
-        // Add Payment Details in Database
-        const newPayment = new Payment({
+        // Add Payment Details in Database using the model function
+        const paymentData = {
           paymentId: payment.id,
-          orderId: payment.order_id,
+          orderId: payment.reference,
           amount: payment.amount / 100,
           currency: payment.currency,
           status: payment.status,
-          method: payment.method,
-          email: payment.email,
-          contact: payment.contact,
-          createdAt: new Date(payment.created_at * 1000) 
-        })
-
-        await newPayment.save();
+          method: payment.channel,
+          email: payment.customer.email,
+          contact: payment.customer.phone,
+          createdAt: new Date(payment.paid_at)
+        };
+        
+        await createPayment(paymentData);
       }
 
       res.json({ success: true });
@@ -89,6 +134,7 @@ const webHookVerification = async (req, res, next) => {
       return next(error);
     }
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
