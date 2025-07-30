@@ -7,7 +7,7 @@ const cors = require("cors");
 const app = express();
 
 
-const PORT = config.port;
+const PORT = 3000;
 connectSupabase();
 
 // Middlewares

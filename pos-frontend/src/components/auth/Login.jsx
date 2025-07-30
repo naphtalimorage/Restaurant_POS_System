@@ -4,7 +4,7 @@ import { enqueueSnackbar } from "notistack";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../config/supabase";
+import { login as loginUser } from "../../https";
 
 const Login = () => {
     const navigate = useNavigate();
@@ -26,41 +26,28 @@ const Login = () => {
 
     const loginMutation = useMutation({
       mutationFn: async (reqData) => {
-        const { email, password } = reqData;
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) throw error;
-        return data;
+        // Use the API endpoint to login the user
+        const response = await loginUser(reqData);
+        return response.data;
       },
-      onSuccess: async (data) => {
+      onSuccess: (responseData) => {
         try {
-          // Get user profile from Supabase users table
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', formData.email)
-            .single();
-            
-          if (error) throw error;
-          
           // Set user in Redux store
-          const { id, name, email, phone, role } = userData;
+          const { id, name, email, phone, role } = responseData.data;
           dispatch(setUser({ _id: id, name, email, phone, role }));
           
           enqueueSnackbar("Login successful!", { variant: "success" });
           navigate("/");
         } catch (error) {
-          console.error("Error fetching user data:", error);
-          enqueueSnackbar("Login successful but error fetching user data", { variant: "warning" });
+          console.error("Error processing user data:", error);
+          enqueueSnackbar("Login successful but error processing user data", { variant: "warning" });
           navigate("/");
         }
       },
       onError: (error) => {
         console.error("Login error:", error);
-        enqueueSnackbar(error.message || "Login failed", { variant: "error" });
+        const errorMessage = error.response?.data?.message || error.message || "Login failed";
+        enqueueSnackbar(errorMessage, { variant: "error" });
       }
     })
 
