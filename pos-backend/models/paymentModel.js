@@ -90,9 +90,22 @@ const updatePaymentStatus = async (paymentId, status) => {
   return data[0];
 };
 
+// Get all payments
+const getAllPayments = async () => {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  
+  return data;
+};
+
 module.exports = {
   createPayment,
   getPaymentByPaymentId,
   getPaymentsByOrderId,
-  updatePaymentStatus
+  updatePaymentStatus,
+  getAllPayments
 };

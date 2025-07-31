@@ -1,6 +1,6 @@
 const axios = require("axios");
 const config = require("../config/config");
-const { createPayment } = require("../models/paymentModel");
+const { createPayment, getAllPayments } = require("../models/paymentModel");
 const createHttpError = require("http-errors");
 
 const createOrder = async (req, res, next) => {
@@ -139,4 +139,16 @@ const webHookVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrder, verifyPayment, webHookVerification };
+// Get all payments
+const getPayments = async (req, res, next) => {
+  try {
+    // Get all payments using the model function
+    const payments = await getAllPayments();
+    
+    res.status(200).json({ success: true, data: payments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createOrder, verifyPayment, webHookVerification, getPayments };
