@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import TableCard from "../components/tables/TableCard";
-import { tables } from "../constants";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getTables } from "../https";
+import { enqueueSnackbar } from "notistack";
 
 const Tables = () => {
   const [status, setStatus] = useState("all");
@@ -57,17 +57,20 @@ const Tables = () => {
       </div>
 
       <div className="grid grid-cols-5 gap-3 px-16 py-4 h-[650px] overflow-y-scroll scrollbar-hide">
-        {resData?.data.data.map((table) => {
-          return (
-            <TableCard
-              id={table._id}
-              name={table.tableNo}
-              status={table.status}
-              initials={table?.currentOrder?.customerDetails.name}
-              seats={table.seats}
-            />
-          );
-        })}
+        {resData?.data?.data
+          ?.filter(table => status === "all" || (status === "booked" && table.status === "Booked"))
+          .map((table) => {
+            return (
+              <TableCard
+                key={table._id}
+                id={table._id}
+                name={table.tableNo}
+                status={table.status}
+                initials={table?.currentOrder?.customerDetails?.name}
+                seats={table.seats}
+              />
+            );
+          })}
       </div>
 
       <BottomNav />
