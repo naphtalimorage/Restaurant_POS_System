@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import OrderCard from "../components/orders/OrderCard";
 import BackButton from "../components/shared/BackButton";
+import ErrorBoundary from "../components/shared/ErrorBoundary";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getOrders } from "../https/index";
 import { enqueueSnackbar } from "notistack"
@@ -55,7 +56,11 @@ const Orders = () => {
         {
           resData?.data.data.length > 0 ? (
             resData.data.data.map((order) => {
-              return <OrderCard key={order._id} order={order} />
+              return (
+                <ErrorBoundary key={order._id}>
+                  <OrderCard key={order._id} order={order} />
+                </ErrorBoundary>
+              )
             })
           ) : <p className="col-span-3 text-gray-500">No orders available</p>
         }
